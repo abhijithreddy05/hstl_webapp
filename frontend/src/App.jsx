@@ -1,30 +1,41 @@
-import React, { useState } from 'react';
-import Home from './components/Home';
-import StudentLogin from './components/StudentLogin';
-import StudentSignup from './components/StudentSignup';
-import WardenLogin from './components/WardenLogin';
+import { Routes, Route } from "react-router-dom";
+import Navbar from "./components/Navbar";
+import Home from "./pages/Home";
+import StudentLogin from "./pages/StudentLogin";
+import StudentSignup from "./pages/StudentSignup";
+import StudentDashboard from "./pages/StudentDashboard";
+import WardenLogin from "./pages/WardenLogin";
+import WardenSignup from "./pages/WardenSignup";
+import WardenDashboard from "./pages/WardenDashboard";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
-  const [currentPage, setCurrentPage] = useState('home');
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'home':
-        return <Home onNavigate={setCurrentPage} />;
-      case 'student-login':
-        return <StudentLogin onNavigate={setCurrentPage} />;
-      case 'student-signup':
-        return <StudentSignup onNavigate={setCurrentPage} />;
-      case 'warden-login':
-        return <WardenLogin onNavigate={setCurrentPage} />;
-      default:
-        return <Home onNavigate={setCurrentPage} />;
-    }
-  };
-
   return (
     <div className="min-h-screen bg-gray-100">
-      {renderPage()}
+      <Navbar />
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/student/login" element={<StudentLogin />} />
+        <Route path="/student/signup" element={<StudentSignup />} />
+        <Route
+          path="/student/dashboard"
+          element={
+            <ProtectedRoute role="student">
+              <StudentDashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/warden/login" element={<WardenLogin />} />
+        <Route path="/warden/signup" element={<WardenSignup />} />
+        <Route
+          path="/warden/dashboard"
+          element={
+            <ProtectedRoute role="warden">
+              <WardenDashboard />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
     </div>
   );
 }

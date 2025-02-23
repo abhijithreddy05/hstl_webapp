@@ -112,23 +112,26 @@ export const updateOutingStatus = async (req, res) => {
           return res.status(404).json({ message: "Warden not found" });
       }
 
-      // ✅ Find outing record
+      // ✅ Find outing record in warden's records
       let outingRecord = warden.outingRecords.id(outingId);
       if (!outingRecord) {
           return res.status(404).json({ message: "Outing request not found" });
       }
 
-      // ✅ Update status
+      // ✅ Update status in warden's records
       outingRecord.status = status;
       await warden.save();
 
-      // ✅ Update student's history & clear active outing request if accepted
+      // ✅ Update status in student's record
       const student = await Student.findById(outingRecord.studentId);
       if (student) {
-          if (status === "accepted") {
-              student.outingHistory.push(student.outingRequest);
-              student.outingRequest = null;
-          }
+          // ✅ Update student's outing request status before saving it in history
+          student.outingRequest.status = status;
+
+          // ✅ Move to outing history and remove from active request
+          student.outingHistory.push(student.outingRequest);
+          student.outingRequest = null;
+
           await student.save();
       }
 
