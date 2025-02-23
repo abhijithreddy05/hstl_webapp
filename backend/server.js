@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import studentRoutes from "./routes/studentRoutes.js";
+import wardenRoutes from "./routes/wardenRoutes.js";
 
 dotenv.config();
 
@@ -24,5 +25,6 @@ mongoose
 
 // ✅ Routes
 app.use("/api/students", studentRoutes);
+app.use("/api/wardens", wardenRoutes);
 
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
