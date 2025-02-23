@@ -1,17 +1,29 @@
 import React, { useState } from 'react';
+import axios from "axios";
 
 function StudentSignup({ onNavigate }) {
   const [formData, setFormData] = useState({
     email: '',
-    RollNumber: '',
+    rollNumber: '',
     StudentName: '',
     password: '',
-    PhoneNumber: '',
+    phoneNumber: '',
   });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log('Student signup:', formData);
+    
+    try {
+      const res = await axios.post('http://localhost:2000/api/students/signup', formData, {
+        headers: { "Content-Type": "application/json" },
+      });
+  
+      console.log("Signup successful:", res.data);
+      alert("Student registered successfully!");
+    } catch (error) {
+      console.error("Signup failed:", error.response?.data || error.message);
+      alert("Signup failed. Check console for details.");
+    }
   };
 
   return (
@@ -45,8 +57,8 @@ function StudentSignup({ onNavigate }) {
               <input
                 type="text"
                 id="rollNumber"
-                value={formData.RollNumber}
-                onChange={(e) => setFormData({ ...formData, RollNumber: e.target.value })}
+                value={formData.rollNumber}
+                onChange={(e) => setFormData({ ...formData, rollNumber: e.target.value })}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 required
               />
@@ -87,8 +99,8 @@ function StudentSignup({ onNavigate }) {
               <input
                 type="text"
                 id="phoneNumber"
-                value={formData.PhoneNumber}
-                onChange={(e) => setFormData({ ...formData, PhoneNumber: e.target.value })}
+                value={formData.phoneNumber}
+                onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
                 className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
                 required
               />
