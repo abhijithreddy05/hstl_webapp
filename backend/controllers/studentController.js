@@ -1,6 +1,19 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import twilio from "twilio";
+import dotenv from "dotenv";
 import Student from "../models/Student.js";
+
+dotenv.config();
+
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
+
+const client = twilio(accountSid, authToken);
+
+// Generate a random 6-digit OTP
+const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
 
 export const registerStudent = async (req, res) => {
   try {
@@ -95,5 +108,70 @@ export const loginStudent = async (req, res) => {
   } catch (error) {
     console.error("Login Error:", error);
     res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+export const requestOuting = async (req, res) => {
+  try {
+    const { studentId, hostelName, roomNumber, purpose, date, parentPhoneNumber } = req.body;
+
+    const student = await Student.findById(studentId);
+
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    const otp = generateOTP();
+
+    // Update student's outing request
+    student.outingRequest = {
+      hostelName,
+      roomNumber,
+      purpose,
+      date,
+      parentPhoneNumber,
+      otp,
+      isVerified: false
+    };
+
+    await student.save();
+
+    // Send OTP via Twilio
+    await client.messages.create({
+      body: `Your OTP for outing verification is: ${otp}`,
+      from: twilioPhoneNumber,
+      to: parentPhoneNumber
+    });
+
+    res.status(200).json({ message: "OTP sent to parent's phone number." });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const verifyOTP = async (req, res) => {
+  try {
+    const { studentId, enteredOtp } = req.body;
+
+    const student = await Student.findById(studentId);
+
+    if (!student || !student.outingRequest) {
+      return res.status(404).json({ message: "Outing request not found" });
+    }
+
+    if (student.outingRequest.otp !== enteredOtp) {
+      return res.status(400).json({ message: "Invalid OTP. Please try again." });
+    }
+
+    // Mark as verified and clear OTP
+    student.outingRequest.isVerified = true;
+    student.outingRequest.otp = null;
+    await student.save();
+
+    res.status(200).json({ message: "OTP verified successfully. Outing request approved." });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
