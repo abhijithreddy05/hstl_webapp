@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import axios from 'axios';
 
 function StudentLogin({ onNavigate }) {
   const [formData, setFormData] = useState({
@@ -6,10 +7,34 @@ function StudentLogin({ onNavigate }) {
     password: '',
   });
 
-  const handleSubmit = (e) => {
+  const [message, setMessage] = useState({ text: '', type: '' });
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Student login:', formData);
+    setMessage({ text: '', type: '' }); // Clear previous messages
+
+    try {
+      const res = await axios.post('http://localhost:2000/api/students/login', formData, {
+        headers: { "Content-Type": "application/json" },
+      });
+
+      console.log("Login successful:", res.data);
+
+      // ✅ Show success message on screen
+      setMessage({ text: "Login Successful!", type: "success" });
+
+      // ✅ Save token to local storage
+      localStorage.setItem("token", res.data.student.token);
+
+      // ✅ Navigate to student dashboard after 2 seconds
+      // setTimeout(() => onNavigate('student-dashboard'), 2000);
+
+    } catch (error) {
+      console.error("Login failed:", error.response?.data?.message || error.message);
+
+      // ❌ Show error message on screen
+      setMessage({ text: error.response?.data?.message || "Login failed. Try again.", type: "error" });
+    }
   };
 
   return (
@@ -20,6 +45,17 @@ function StudentLogin({ onNavigate }) {
             <h2 className="text-3xl font-bold text-gray-800">Student Login</h2>
             <p className="text-gray-600 mt-2">Welcome back, please login to your account</p>
           </div>
+
+          {/* ✅ Success or Error Message */}
+          {message.text && (
+            <p
+              className={`text-center mb-4 p-2 rounded-lg ${
+                message.type === "success" ? "bg-green-200 text-green-700" : "bg-red-200 text-red-700"
+              }`}
+            >
+              {message.text}
+            </p>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>

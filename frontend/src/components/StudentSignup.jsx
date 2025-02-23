@@ -25,6 +25,9 @@ function StudentSignup({ onNavigate }) {
 
       setSuccess("Student registered successfully!");
       setError(""); // Clear error if success
+      setTimeout(() => {
+        onNavigate('student-login');  // Redirect to login page
+      }, 1000);
 
     } catch (error) {
       if (error.response && error.response.data.message) {

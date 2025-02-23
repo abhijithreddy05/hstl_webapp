@@ -55,3 +55,45 @@ export const registerStudent = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+export const loginStudent = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    // ✅ Check if both email and password are provided
+    if (!email || !password) {
+      return res.status(400).json({ message: "Email and password are required" });
+    }
+
+    // ✅ Find student by email
+    const student = await Student.findOne({ email });
+    if (!student) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // ✅ Check password
+    const isMatch = await bcrypt.compare(password, student.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    // ✅ Generate JWT Token
+    const token = jwt.sign({ id: student._id }, process.env.JWT_SECRET, { expiresIn: "7d" });
+
+    res.status(200).json({
+      message: "Login successful",
+      student: {
+        id: student._id,
+        StudentName: student.name,
+        rollNumber: student.rollNumber,
+        email: student.email,
+        phoneNumber: student.phoneNumber,
+        token,
+      },
+    });
+
+  } catch (error) {
+    console.error("Login Error:", error);
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
