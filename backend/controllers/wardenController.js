@@ -75,56 +75,67 @@ export const loginWarden = async (req, res) => {
     }
   };
 
-  export const getOutingRequests = async (req, res) => {
-    // console.log("derftghnj");
-    try {
-      const warden = await Warden.findOne(); // Since you have only one warden
-      if (!warden) {
-        return res.status(404).json({ message: "Warden not found" });
-      }
-  
-      res.status(200).json(warden.outingRecords);
-    } catch (error) {
-      res.status(500).json({ error: error.message });
-    }
-  };
+export const getOutingRequests = async (req, res) => {
+  try {
+    // ✅ Get wardenId from the token (validated by `protectWarden` middleware)
+    const wardenId = req.user.id;
 
-  export const updateOutingStatus = async (req, res) => {
-    try {
-      const { outingId, status } = req.body; // Get outing request ID & new status
-  
+    // ✅ Find the warden using authenticated token ID
+    const warden = await Warden.findById(wardenId);
+    if (!warden) {
+      return res.status(404).json({ message: "Warden not found" });
+    }
+
+    res.status(200).json({ outingRequests: warden.outingRecords });
+
+  } catch (error) {
+    console.error("Error in getOutingRequests:", error);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const updateOutingStatus = async (req, res) => {
+  try {
+      const { outingId, status } = req.body;
+
+      // ✅ Validate status
       if (!["accepted", "declined"].includes(status)) {
-        return res.status(400).json({ message: "Invalid status" });
+          return res.status(400).json({ message: "Invalid status" });
       }
-  
-      let warden = await Warden.findOne();
+
+      // ✅ Get warden ID from token (validated by `protectWarden`)
+      const wardenId = req.user.id;
+
+      // ✅ Find the warden using authenticated token ID
+      let warden = await Warden.findById(wardenId);
       if (!warden) {
-        return res.status(404).json({ message: "Warden not found" });
+          return res.status(404).json({ message: "Warden not found" });
       }
-  
-      // Find outing record
+
+      // ✅ Find outing record
       let outingRecord = warden.outingRecords.id(outingId);
       if (!outingRecord) {
-        return res.status(404).json({ message: "Outing request not found" });
+          return res.status(404).json({ message: "Outing request not found" });
       }
-  
-      // Update status
+
+      // ✅ Update status
       outingRecord.status = status;
       await warden.save();
-  
-      // Update student history & clear active outing request if accepted
+
+      // ✅ Update student's history & clear active outing request if accepted
       const student = await Student.findById(outingRecord.studentId);
       if (student) {
-        if (status === "accepted") {
-          student.outingHistory.push(student.outingRequest);
-          student.outingRequest = null;
-        }
-        await student.save();
+          if (status === "accepted") {
+              student.outingHistory.push(student.outingRequest);
+              student.outingRequest = null;
+          }
+          await student.save();
       }
-  
+
       res.status(200).json({ message: `Outing request ${status} successfully.` });
-  
-    } catch (error) {
+
+  } catch (error) {
+      console.error("Error in updateOutingStatus:", error);
       res.status(500).json({ error: error.message });
-    }
-  };
+  }
+};
