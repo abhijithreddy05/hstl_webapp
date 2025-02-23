@@ -3,18 +3,17 @@ import jwt from "jsonwebtoken";
 import twilio from "twilio";
 import dotenv from "dotenv";
 import Student from "../models/Student.js";
+import Warden from "../models/Warden.js";
 
 dotenv.config();
-
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
 const twilioPhoneNumber = process.env.TWILIO_PHONE_NUMBER;
 
 const client = twilio(accountSid, authToken);
 
-// Generate a random 6-digit OTP
+// Function to generate OTP
 const generateOTP = () => Math.floor(100000 + Math.random() * 900000).toString();
-
 export const registerStudent = async (req, res) => {
   try {
     const { StudentName:name, rollNumber, email, password, phoneNumber } = req.body;
@@ -114,7 +113,6 @@ export const loginStudent = async (req, res) => {
 export const requestOuting = async (req, res) => {
   try {
     const { studentId, hostelName, roomNumber, purpose, date, parentPhoneNumber } = req.body;
-
     const student = await Student.findById(studentId);
 
     if (!student) {
@@ -131,7 +129,8 @@ export const requestOuting = async (req, res) => {
       date,
       parentPhoneNumber,
       otp,
-      isVerified: false
+      isVerified: false,
+      status: "pending", // Request starts as pending
     };
 
     await student.save();
@@ -140,7 +139,7 @@ export const requestOuting = async (req, res) => {
     await client.messages.create({
       body: `Your OTP for outing verification is: ${otp}`,
       from: twilioPhoneNumber,
-      to: parentPhoneNumber
+      to: parentPhoneNumber,
     });
 
     res.status(200).json({ message: "OTP sent to parent's phone number." });
@@ -155,7 +154,6 @@ export const verifyOTP = async (req, res) => {
     const { studentId, enteredOtp } = req.body;
 
     const student = await Student.findById(studentId);
-
     if (!student || !student.outingRequest) {
       return res.status(404).json({ message: "Outing request not found" });
     }
@@ -164,13 +162,49 @@ export const verifyOTP = async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP. Please try again." });
     }
 
-    // Mark as verified and clear OTP
+    // Mark as verified and set status to "pending"
     student.outingRequest.isVerified = true;
     student.outingRequest.otp = null;
     await student.save();
 
-    res.status(200).json({ message: "OTP verified successfully. Outing request approved." });
+    // Find the warden (assuming there is only one warden)
+    let warden = await Warden.findOne();
+    if (!warden) {
+      return res.status(404).json({ message: "Warden not found" });
+    }
 
+    // Add the outing request to warden's records
+    warden.outingRecords.push({
+      studentId: student._id,
+      studentName: student.name,
+      rollNumber: student.rollNumber,
+      hostelName: student.outingRequest.hostelName,
+      roomNumber: student.outingRequest.roomNumber,
+      purpose: student.outingRequest.purpose,
+      date: student.outingRequest.date,
+      status: "pending"
+    });
+
+    await warden.save();
+
+    res.status(200).json({ message: "OTP verified. Outing request sent to warden." });
+
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const getStudentHistory = async (req, res) => {
+  console.log(req.params);
+  try {
+    const { studentId } = req.params;
+
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    res.status(200).json({ history: student.outingHistory });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

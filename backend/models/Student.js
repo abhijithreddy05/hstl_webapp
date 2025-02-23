@@ -7,7 +7,8 @@ const outingRequestSchema = new mongoose.Schema({
   date: { type: Date, required: true },
   parentPhoneNumber: { type: String, required: true },
   otp: { type: String }, // Store OTP temporarily
-  isVerified: { type: Boolean, default: false } // Track OTP verification
+  isVerified: { type: Boolean, default: false }, // Track OTP verification
+  status: { type: String, enum: ["pending", "accepted", "declined"], default: "pending" } // Status tracking
 }, { timestamps: true });
 
 const studentSchema = new mongoose.Schema({
@@ -16,7 +17,8 @@ const studentSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true },
   password: { type: String, required: true },
   phoneNumber: { type: String, required: true },
-  outingRequest: outingRequestSchema // Nested outing request inside student model
+  outingRequest: outingRequestSchema, // Active outing request
+  outingHistory: [outingRequestSchema] // Store past requests (Approved/Declined)
 }, { timestamps: true });
 
 const Student = mongoose.model("Student", studentSchema);

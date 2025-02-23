@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import Warden from "../models/Warden.js";
+import Student from "../models/Student.js";
 
 // ✅ Register Warden
 export const registerWarden = async (req, res) => {
@@ -71,5 +72,59 @@ export const loginWarden = async (req, res) => {
     } catch (error) {
       console.error("Login Error:", error);
       res.status(500).json({ message: "Internal Server Error" });
+    }
+  };
+
+  export const getOutingRequests = async (req, res) => {
+    // console.log("derftghnj");
+    try {
+      const warden = await Warden.findOne(); // Since you have only one warden
+      if (!warden) {
+        return res.status(404).json({ message: "Warden not found" });
+      }
+  
+      res.status(200).json(warden.outingRecords);
+    } catch (error) {
+      res.status(500).json({ error: error.message });
+    }
+  };
+
+  export const updateOutingStatus = async (req, res) => {
+    try {
+      const { outingId, status } = req.body; // Get outing request ID & new status
+  
+      if (!["accepted", "declined"].includes(status)) {
+        return res.status(400).json({ message: "Invalid status" });
+      }
+  
+      let warden = await Warden.findOne();
+      if (!warden) {
+        return res.status(404).json({ message: "Warden not found" });
+      }
+  
+      // Find outing record
+      let outingRecord = warden.outingRecords.id(outingId);
+      if (!outingRecord) {
+        return res.status(404).json({ message: "Outing request not found" });
+      }
+  
+      // Update status
+      outingRecord.status = status;
+      await warden.save();
+  
+      // Update student history & clear active outing request if accepted
+      const student = await Student.findById(outingRecord.studentId);
+      if (student) {
+        if (status === "accepted") {
+          student.outingHistory.push(student.outingRequest);
+          student.outingRequest = null;
+        }
+        await student.save();
+      }
+  
+      res.status(200).json({ message: `Outing request ${status} successfully.` });
+  
+    } catch (error) {
+      res.status(500).json({ error: error.message });
     }
   };
