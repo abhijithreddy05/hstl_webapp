@@ -10,19 +10,28 @@ function StudentSignup({ onNavigate }) {
     phoneNumber: '',
   });
 
+  const [error, setError] = useState(""); // Store error message
+  const [success, setSuccess] = useState(""); // Store success message
+
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+    setError(""); // Reset error state
+    setSuccess(""); // Reset success state
+
     try {
       const res = await axios.post('http://localhost:2000/api/students/signup', formData, {
         headers: { "Content-Type": "application/json" },
       });
-  
-      console.log("Signup successful:", res.data);
-      alert("Student registered successfully!");
+
+      setSuccess("Student registered successfully!");
+      setError(""); // Clear error if success
+
     } catch (error) {
-      console.error("Signup failed:", error.response?.data || error.message);
-      alert("Signup failed. Check console for details.");
+      if (error.response && error.response.data.message) {
+        setError(error.response.data.message); // Display the backend error message
+      } else {
+        setError("Something went wrong. Please try again.");
+      }
     }
   };
 
@@ -34,6 +43,10 @@ function StudentSignup({ onNavigate }) {
             <h2 className="text-3xl font-bold text-gray-800">Student Registration</h2>
             <p className="text-gray-600 mt-2">Create your student account</p>
           </div>
+
+          {/* Show error or success messages */}
+          {error && <p className="text-red-500 text-center">{error}</p>}
+          {success && <p className="text-green-500 text-center">{success}</p>}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
